@@ -36,8 +36,7 @@ public interface ITelegramService
 /// <summary>
 /// Сервис для работы с Telegram Bot API
 /// </summary>
-public class TelegramService(IOptions<TelegramConfiguration> telegramConfiguration, ILogger<TelegramService> logger,
-	IErrorLoggingService errorLoggingService)
+public class TelegramService(IOptions<TelegramConfiguration> telegramConfiguration, ILogger<TelegramService> logger)
 	: ITelegramService
 {
 	private readonly TelegramBotClient _botClient = new(telegramConfiguration.Value.BotToken);
@@ -61,7 +60,6 @@ public class TelegramService(IOptions<TelegramConfiguration> telegramConfigurati
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при получении обновлений");
-			await errorLoggingService.LogErrorAsync(ex, "Ошибка при получении обновлений из Telegram API", "TelegramService.GetUpdatesAsync");
 			return [];
 		}
 	}
@@ -86,7 +84,6 @@ public class TelegramService(IOptions<TelegramConfiguration> telegramConfigurati
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при скачивании файла {FileId}", fileId);
-			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при скачивании файла {fileId}", "TelegramService.DownloadFileAsync");
 			return null;
 		}
 	}
@@ -116,7 +113,6 @@ public class TelegramService(IOptions<TelegramConfiguration> telegramConfigurati
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при получении информации о файле {FileId}", fileId);
-			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при получении информации о файле {fileId}", "TelegramService.GetFileAsync");
 			return null;
 		}
 	}
