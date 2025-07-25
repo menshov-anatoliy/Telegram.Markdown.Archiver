@@ -11,12 +11,14 @@ public sealed class FileSystemServiceTests
 {
 	private FileSystemService _fileSystemService = null!;
 	private Mock<ILogger<FileSystemService>> _loggerMock = null!;
+	private Mock<IErrorLoggingService> _errorLoggingServiceMock = null!;
 	private PathsConfiguration _pathsConfiguration = null!;
 
 	[TestInitialize]
 	public void Setup()
 	{
 		_loggerMock = new Mock<ILogger<FileSystemService>>();
+		_errorLoggingServiceMock = new Mock<IErrorLoggingService>();
 		_pathsConfiguration = new PathsConfiguration
 		{
 			NotesRoot = "/tmp/test_notes",
@@ -27,7 +29,7 @@ public sealed class FileSystemServiceTests
 		var optionsMock = new Mock<IOptions<PathsConfiguration>>();
 		optionsMock.Setup(x => x.Value).Returns(_pathsConfiguration);
 
-		_fileSystemService = new FileSystemService(optionsMock.Object, _loggerMock.Object);
+		_fileSystemService = new FileSystemService(optionsMock.Object, _loggerMock.Object, _errorLoggingServiceMock.Object);
 	}
 
 	[TestMethod]

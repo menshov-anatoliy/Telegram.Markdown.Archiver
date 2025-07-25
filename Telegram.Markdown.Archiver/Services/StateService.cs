@@ -25,7 +25,8 @@ public interface IStateService
 /// <summary>
 /// Сервис для работы с состоянием приложения
 /// </summary>
-public class StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<StateService> logger)
+public class StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<StateService> logger,
+	IErrorLoggingService errorLoggingService)
 	: IStateService
 {
 	private readonly PathsConfiguration _pathsConfiguration = pathsConfiguration.Value;
@@ -51,6 +52,7 @@ public class StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogg
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при загрузке состояния из файла {StateFile}", _pathsConfiguration.StateFile);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при загрузке файла состояния {_pathsConfiguration.StateFile}", "StateService.GetStateAsync");
 			return new ApplicationState();
 		}
 	}
@@ -76,6 +78,7 @@ public class StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogg
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при сохранении состояния в файл {StateFile}", _pathsConfiguration.StateFile);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при сохранении файла состояния {_pathsConfiguration.StateFile}", "StateService.SaveStateAsync");
 			throw;
 		}
 	}

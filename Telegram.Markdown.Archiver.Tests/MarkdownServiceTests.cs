@@ -9,12 +9,14 @@ public sealed class MarkdownServiceTests
 {
     private MarkdownService _markdownService = null!;
     private Mock<ILogger<MarkdownService>> _loggerMock = null!;
+    private Mock<IErrorLoggingService> _errorLoggingServiceMock = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _loggerMock = new Mock<ILogger<MarkdownService>>();
-        _markdownService = new MarkdownService(_loggerMock.Object);
+        _errorLoggingServiceMock = new Mock<IErrorLoggingService>();
+        _markdownService = new MarkdownService(_loggerMock.Object, _errorLoggingServiceMock.Object);
     }
 
     [TestMethod]

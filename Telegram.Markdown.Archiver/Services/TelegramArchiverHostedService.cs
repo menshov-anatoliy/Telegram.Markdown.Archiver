@@ -18,6 +18,7 @@ public class TelegramArchiverHostedService : BackgroundService
 	private readonly IFileSystemService _fileSystemService;
 	private readonly IMarkdownService _markdownService;
 	private readonly IWhisperService _whisperService;
+	private readonly IErrorLoggingService _errorLoggingService;
 	private readonly TelegramConfiguration _telegramConfiguration;
 	private readonly ILogger<TelegramArchiverHostedService> _logger;
 
@@ -30,6 +31,7 @@ public class TelegramArchiverHostedService : BackgroundService
 		IFileSystemService fileSystemService,
 		IMarkdownService markdownService,
 		IWhisperService whisperService,
+		IErrorLoggingService errorLoggingService,
 		IOptions<TelegramConfiguration> telegramConfiguration,
 		ILogger<TelegramArchiverHostedService> logger)
 	{
@@ -38,6 +40,7 @@ public class TelegramArchiverHostedService : BackgroundService
 		_fileSystemService = fileSystemService;
 		_markdownService = markdownService;
 		_whisperService = whisperService;
+		_errorLoggingService = errorLoggingService;
 		_telegramConfiguration = telegramConfiguration.Value;
 		_logger = logger;
 	}
@@ -88,6 +91,7 @@ public class TelegramArchiverHostedService : BackgroundService
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Ошибка при обработке обновлений");
+				await _errorLoggingService.LogErrorAsync(ex, "Ошибка при обработке обновлений Telegram", "TelegramArchiverHostedService.ExecuteAsync");
 				await Task.Delay(RetryDelayMs, stoppingToken);
 			}
 		}
@@ -163,6 +167,7 @@ public class TelegramArchiverHostedService : BackgroundService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Ошибка при обработке сообщения {MessageId}", message.MessageId);
+			await _errorLoggingService.LogErrorAsync(ex, $"Ошибка при обработке сообщения {message.MessageId}", "TelegramArchiverHostedService.ProcessMessageAsync");
 		}
 	}
 
@@ -218,6 +223,7 @@ public class TelegramArchiverHostedService : BackgroundService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Ошибка при обработке медиафайла в сообщении {MessageId}", message.MessageId);
+			await _errorLoggingService.LogErrorAsync(ex, $"Ошибка при обработке медиафайла в сообщении {message.MessageId}", "TelegramArchiverHostedService.ProcessMediaAsync");
 			return null;
 		}
 	}
@@ -246,6 +252,7 @@ public class TelegramArchiverHostedService : BackgroundService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Ошибка при транскрипции голосового сообщения");
+			await _errorLoggingService.LogErrorAsync(ex, "Ошибка при транскрипции голосового сообщения", "TelegramArchiverHostedService.ProcessVoiceMessageAsync");
 			return "[Ошибка транскрипции]";
 		}
 	}
