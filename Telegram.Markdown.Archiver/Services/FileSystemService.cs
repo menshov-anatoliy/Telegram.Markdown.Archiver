@@ -38,7 +38,8 @@ public interface IFileSystemService
 /// <summary>
 /// Сервис для работы с файловой системой
 /// </summary>
-public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<FileSystemService> logger)
+public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<FileSystemService> logger,
+	IErrorLoggingService errorLoggingService)
 	: IFileSystemService
 {
 	private readonly PathsConfiguration _pathsConfiguration = pathsConfiguration.Value;
@@ -92,6 +93,7 @@ public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, 
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при создании директорий");
+			await errorLoggingService.LogErrorAsync(ex, "Ошибка при создании необходимых директорий", "FileSystemService.EnsureDirectoriesExistAsync");
 			throw;
 		}
 
@@ -117,6 +119,7 @@ public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, 
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при сохранении медиафайла {FileName}", fileName);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при сохранении медиафайла {fileName}", "FileSystemService.SaveMediaFileAsync");
 			throw;
 		}
 	}

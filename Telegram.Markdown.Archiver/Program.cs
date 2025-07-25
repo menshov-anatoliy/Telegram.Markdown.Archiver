@@ -14,6 +14,8 @@ internal class Program
 		var host = CreateHostBuilder(args).Build();
 
 		var logger = host.Services.GetRequiredService<ILogger<Program>>();
+		var errorLoggingService = host.Services.GetRequiredService<IErrorLoggingService>();
+		
 		logger.LogInformation("Запуск приложения Telegram Markdown Archiver");
 
 		try
@@ -23,6 +25,7 @@ internal class Program
 		catch (Exception ex)
 		{
 			logger.LogCritical(ex, "Критическая ошибка при выполнении приложения");
+			await errorLoggingService.LogCriticalErrorAsync(ex, "Критическая ошибка при выполнении приложения", "Program.Main");
 			throw;
 		}
 		finally
@@ -48,6 +51,8 @@ internal class Program
 					context.Configuration.GetSection("Paths"));
 				services.Configure<WhisperConfiguration>(
 					context.Configuration.GetSection("Whisper"));
+				services.Configure<ErrorLoggingConfiguration>(
+					context.Configuration.GetSection("ErrorLogging"));
 
 				// HTTP клиент
 				services.AddHttpClient();
@@ -58,6 +63,7 @@ internal class Program
 				services.AddSingleton<IMarkdownService, MarkdownService>();
 				services.AddSingleton<IWhisperService, WhisperService>();
 				services.AddSingleton<ITelegramService, TelegramService>();
+				services.AddSingleton<IErrorLoggingService, ErrorLoggingService>();
 
 				// Фоновый сервис
 				services.AddHostedService<TelegramArchiverHostedService>();
