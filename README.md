@@ -87,8 +87,12 @@ docker-compose up -d
 dotnet restore
 dotnet build
 
-# Запуск
+# Для тестирования с локальными путями
+# (по умолчанию использует ./test_data)
 dotnet run --project Telegram.Markdown.Archiver
+
+# Для продакшена с Docker путями
+ASPNETCORE_ENVIRONMENT=Production dotnet run --project Telegram.Markdown.Archiver
 
 # Тестирование
 dotnet test

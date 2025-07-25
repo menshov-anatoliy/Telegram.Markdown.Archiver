@@ -114,7 +114,7 @@ public class TelegramArchiverHostedService : BackgroundService
             string? transcription = null;
 
             // Обработка медиафайлов
-            if (await IsMediaMessageAsync(message))
+            if (IsMediaMessage(message))
             {
                 mediaFileName = await ProcessMediaAsync(message);
             }
@@ -153,7 +153,7 @@ public class TelegramArchiverHostedService : BackgroundService
         }
     }
 
-    private async Task<bool> IsMediaMessageAsync(Message message)
+    private static bool IsMediaMessage(Message message)
     {
         return message.Type switch
         {
