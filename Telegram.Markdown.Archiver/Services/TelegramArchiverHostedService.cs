@@ -121,6 +121,27 @@ public class TelegramArchiverHostedService : BackgroundService
 				{
 					await _telegramService.SendTextMessageAsync(message.Chat.Id, transcription);
 				}
+
+				// Удаляем файл голосового сообщения и обнуляем имя файла, чтобы на него не было ссылки
+				if (mediaFileName != null)
+				{
+					var mediaDirectory = _fileSystemService.GetMediaDirectoryPath();
+					var audioFilePath = Path.Combine(mediaDirectory, mediaFileName);
+					try
+					{
+						if (System.IO.File.Exists(audioFilePath))
+						{
+							System.IO.File.Delete(audioFilePath);
+							_logger.LogInformation("Файл голосового сообщения удален: {AudioFilePath}", audioFilePath);
+						}
+					}
+					catch (Exception ex)
+					{
+						_logger.LogWarning(ex, "Не удалось удалить файл голосового сообщения: {AudioFilePath}", audioFilePath);
+					}
+
+					mediaFileName = null;
+				}
 			}
 
 			// Получить информацию о сообщении, на которое отвечаем (если есть)
