@@ -9,121 +9,115 @@ namespace Telegram.Markdown.Archiver.Services;
 /// </summary>
 public interface IFileSystemService
 {
-    /// <summary>
-    /// Получить путь к файлу заметок для указанной даты
-    /// </summary>
-    string GetNotesFilePath(DateTime date);
+	/// <summary>
+	/// Получить путь к файлу заметок для указанной даты
+	/// </summary>
+	string GetNotesFilePath(DateTime date);
 
-    /// <summary>
-    /// Получить путь к директории медиафайлов
-    /// </summary>
-    string GetMediaDirectoryPath();
+	/// <summary>
+	/// Получить путь к директории медиафайлов
+	/// </summary>
+	string GetMediaDirectoryPath();
 
-    /// <summary>
-    /// Получить уникальное имя файла для медиафайла
-    /// </summary>
-    string GetUniqueMediaFileName(string originalFileName);
+	/// <summary>
+	/// Получить уникальное имя файла для медиафайла
+	/// </summary>
+	string GetUniqueMediaFileName(string originalFileName);
 
-    /// <summary>
-    /// Обеспечить существование необходимых директорий
-    /// </summary>
-    Task EnsureDirectoriesExistAsync();
+	/// <summary>
+	/// Обеспечить существование необходимых директорий
+	/// </summary>
+	Task EnsureDirectoriesExistAsync();
 
-    /// <summary>
-    /// Сохранить файл в медиа-директорию
-    /// </summary>
-    Task<string> SaveMediaFileAsync(byte[] fileData, string fileName);
+	/// <summary>
+	/// Сохранить файл в медиа-директорию
+	/// </summary>
+	Task<string> SaveMediaFileAsync(byte[] fileData, string fileName);
 }
 
 /// <summary>
 /// Сервис для работы с файловой системой
 /// </summary>
-public class FileSystemService : IFileSystemService
+public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<FileSystemService> logger)
+	: IFileSystemService
 {
-    private readonly PathsConfiguration _pathsConfiguration;
-    private readonly ILogger<FileSystemService> _logger;
+	private readonly PathsConfiguration _pathsConfiguration = pathsConfiguration.Value;
 
-    public FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<FileSystemService> logger)
-    {
-        _pathsConfiguration = pathsConfiguration.Value;
-        _logger = logger;
-    }
+	public string GetNotesFilePath(DateTime date)
+	{
+		var fileName = $"{date:yyyy-MM-dd}_Notes.md";
+		return Path.Combine(_pathsConfiguration.NotesRoot, fileName);
+	}
 
-    public string GetNotesFilePath(DateTime date)
-    {
-        var fileName = $"{date:yyyy-MM-dd}_Notes.md";
-        return Path.Combine(_pathsConfiguration.NotesRoot, fileName);
-    }
+	public string GetMediaDirectoryPath()
+	{
+		return Path.Combine(_pathsConfiguration.NotesRoot, _pathsConfiguration.MediaDirectoryName);
+	}
 
-    public string GetMediaDirectoryPath()
-    {
-        return Path.Combine(_pathsConfiguration.NotesRoot, _pathsConfiguration.MediaDirectoryName);
-    }
+	public string GetUniqueMediaFileName(string originalFileName)
+	{
+		var mediaDirectory = GetMediaDirectoryPath();
+		var fullPath = Path.Combine(mediaDirectory, originalFileName);
 
-    public string GetUniqueMediaFileName(string originalFileName)
-    {
-        var mediaDirectory = GetMediaDirectoryPath();
-        var fullPath = Path.Combine(mediaDirectory, originalFileName);
+		if (!File.Exists(fullPath))
+		{
+			return originalFileName;
+		}
 
-        if (!File.Exists(fullPath))
-        {
-            return originalFileName;
-        }
+		// Если файл существует, добавляем суффикс с датой и временем
+		var extension = Path.GetExtension(originalFileName);
+		var nameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
+		var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-        // Если файл существует, добавляем суффикс с датой и временем
-        var extension = Path.GetExtension(originalFileName);
-        var nameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
-        var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-        
-        return $"{nameWithoutExtension}_{timestamp}{extension}";
-    }
+		return $"{nameWithoutExtension}_{timestamp}{extension}";
+	}
 
-    public async Task EnsureDirectoriesExistAsync()
-    {
-        try
-        {
-            if (!Directory.Exists(_pathsConfiguration.NotesRoot))
-            {
-                Directory.CreateDirectory(_pathsConfiguration.NotesRoot);
-                _logger.LogInformation("Создана директория для заметок: {NotesRoot}", _pathsConfiguration.NotesRoot);
-            }
+	public async Task EnsureDirectoriesExistAsync()
+	{
+		try
+		{
+			if (!Directory.Exists(_pathsConfiguration.NotesRoot))
+			{
+				Directory.CreateDirectory(_pathsConfiguration.NotesRoot);
+				logger.LogInformation("Создана директория для заметок: {NotesRoot}", _pathsConfiguration.NotesRoot);
+			}
 
-            var mediaDirectory = GetMediaDirectoryPath();
-            if (!Directory.Exists(mediaDirectory))
-            {
-                Directory.CreateDirectory(mediaDirectory);
-                _logger.LogInformation("Создана директория для медиафайлов: {MediaDirectory}", mediaDirectory);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при создании директорий");
-            throw;
-        }
+			var mediaDirectory = GetMediaDirectoryPath();
+			if (!Directory.Exists(mediaDirectory))
+			{
+				Directory.CreateDirectory(mediaDirectory);
+				logger.LogInformation("Создана директория для медиафайлов: {MediaDirectory}", mediaDirectory);
+			}
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Ошибка при создании директорий");
+			throw;
+		}
 
-        await Task.CompletedTask;
-    }
+		await Task.CompletedTask;
+	}
 
-    public async Task<string> SaveMediaFileAsync(byte[] fileData, string fileName)
-    {
-        try
-        {
-            await EnsureDirectoriesExistAsync();
-            
-            var uniqueFileName = GetUniqueMediaFileName(fileName);
-            var mediaDirectory = GetMediaDirectoryPath();
-            var fullPath = Path.Combine(mediaDirectory, uniqueFileName);
+	public async Task<string> SaveMediaFileAsync(byte[] fileData, string fileName)
+	{
+		try
+		{
+			await EnsureDirectoriesExistAsync();
 
-            await File.WriteAllBytesAsync(fullPath, fileData);
-            
-            _logger.LogInformation("Медиафайл сохранен: {FileName} ({Size} байт)", uniqueFileName, fileData.Length);
-            
-            return uniqueFileName;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при сохранении медиафайла {FileName}", fileName);
-            throw;
-        }
-    }
+			var uniqueFileName = GetUniqueMediaFileName(fileName);
+			var mediaDirectory = GetMediaDirectoryPath();
+			var fullPath = Path.Combine(mediaDirectory, uniqueFileName);
+
+			await File.WriteAllBytesAsync(fullPath, fileData);
+
+			logger.LogInformation("Медиафайл сохранен: {FileName} ({Size} байт)", uniqueFileName, fileData.Length);
+
+			return uniqueFileName;
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Ошибка при сохранении медиафайла {FileName}", fileName);
+			throw;
+		}
+	}
 }

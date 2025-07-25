@@ -9,60 +9,63 @@ namespace Telegram.Markdown.Archiver;
 
 internal class Program
 {
-    static async Task Main(string[] args)
-    {
-        var host = CreateHostBuilder(args).Build();
-        
-        var logger = host.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Запуск приложения Telegram Markdown Archiver");
+	static async Task Main(string[] args)
+	{
+		var host = CreateHostBuilder(args).Build();
 
-        try
-        {
-            await host.RunAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogCritical(ex, "Критическая ошибка при выполнении приложения");
-            throw;
-        }
-        finally
-        {
-            logger.LogInformation("Приложение завершено");
-        }
-    }
+		var logger = host.Services.GetRequiredService<ILogger<Program>>();
+		logger.LogInformation("Запуск приложения Telegram Markdown Archiver");
 
-    static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                config.AddEnvironmentVariables();
-                config.AddCommandLine(args);
-            })
-            .ConfigureServices((context, services) =>
-            {
-                // Конфигурация
-                services.Configure<TelegramConfiguration>(
-                    context.Configuration.GetSection("Telegram"));
-                services.Configure<PathsConfiguration>(
-                    context.Configuration.GetSection("Paths"));
-                services.Configure<WhisperConfiguration>(
-                    context.Configuration.GetSection("Whisper"));
+		try
+		{
+			await host.RunAsync();
+		}
+		catch (Exception ex)
+		{
+			logger.LogCritical(ex, "Критическая ошибка при выполнении приложения");
+			throw;
+		}
+		finally
+		{
+			logger.LogInformation("Приложение завершено");
+		}
+	}
 
-                // Сервисы
-                services.AddSingleton<IStateService, StateService>();
-                services.AddSingleton<IFileSystemService, FileSystemService>();
-                services.AddSingleton<IMarkdownService, MarkdownService>();
-                services.AddSingleton<IWhisperService, WhisperService>();
-                services.AddSingleton<ITelegramService, TelegramService>();
+	static IHostBuilder CreateHostBuilder(string[] args) =>
+		Host.CreateDefaultBuilder(args)
+			.ConfigureAppConfiguration((context, config) =>
+			{
+				config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+				config.AddEnvironmentVariables();
+				config.AddCommandLine(args);
+			})
+			.ConfigureServices((context, services) =>
+			{
+				// Конфигурация
+				services.Configure<TelegramConfiguration>(
+					context.Configuration.GetSection("Telegram"));
+				services.Configure<PathsConfiguration>(
+					context.Configuration.GetSection("Paths"));
+				services.Configure<WhisperConfiguration>(
+					context.Configuration.GetSection("Whisper"));
 
-                // Фоновый сервис
-                services.AddHostedService<TelegramArchiverHostedService>();
-            })
-            .ConfigureLogging((context, logging) =>
-            {
-                logging.ClearProviders();
-                logging.AddConsole();
-                logging.AddConfiguration(context.Configuration.GetSection("Logging"));
-            });
+				// HTTP клиент
+				services.AddHttpClient();
+
+				// Сервисы
+				services.AddSingleton<IStateService, StateService>();
+				services.AddSingleton<IFileSystemService, FileSystemService>();
+				services.AddSingleton<IMarkdownService, MarkdownService>();
+				services.AddSingleton<IWhisperService, WhisperService>();
+				services.AddSingleton<ITelegramService, TelegramService>();
+
+				// Фоновый сервис
+				services.AddHostedService<TelegramArchiverHostedService>();
+			})
+			.ConfigureLogging((context, logging) =>
+			{
+				logging.ClearProviders();
+				logging.AddConsole();
+				logging.AddConfiguration(context.Configuration.GetSection("Logging"));
+			});
 }

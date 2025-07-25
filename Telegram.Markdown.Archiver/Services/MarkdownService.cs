@@ -11,15 +11,15 @@ namespace Telegram.Markdown.Archiver.Services;
 /// </summary>
 public interface IMarkdownService
 {
-    /// <summary>
-    /// Форматировать сообщение в Markdown
-    /// </summary>
-    string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null);
+	/// <summary>
+	/// Форматировать сообщение в Markdown
+	/// </summary>
+	string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null);
 
-    /// <summary>
-    /// Добавить сообщение в файл заметок
-    /// </summary>
-    Task AppendToNotesFileAsync(string filePath, string content);
+	/// <summary>
+	/// Добавить сообщение в файл заметок
+	/// </summary>
+	Task AppendToNotesFileAsync(string filePath, string content);
 }
 
 /// <summary>
@@ -27,173 +27,173 @@ public interface IMarkdownService
 /// </summary>
 public class MarkdownService : IMarkdownService
 {
-    private readonly ILogger<MarkdownService> _logger;
-    private static readonly CultureInfo RussianCulture = new("ru-RU");
+	private readonly ILogger<MarkdownService> _logger;
+	private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-    public MarkdownService(ILogger<MarkdownService> logger)
-    {
-        _logger = logger;
-    }
+	public MarkdownService(ILogger<MarkdownService> logger)
+	{
+		_logger = logger;
+	}
 
-    public string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null)
-    {
-        var messageTime = message.Date.ToLocalTime();
-        var dayOfWeek = RussianCulture.DateTimeFormat.GetAbbreviatedDayName(messageTime.DayOfWeek);
-        
-        var sb = new StringBuilder();
-        
-        // Заголовок сообщения
-        sb.AppendLine($"### [[{messageTime:yyyy-MM-dd} {dayOfWeek}]] {messageTime:HH:mm:ss}");
-        sb.AppendLine();
+	public string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null)
+	{
+		var messageTime = message.Date.ToLocalTime();
+		var dayOfWeek = RussianCulture.DateTimeFormat.GetAbbreviatedDayName(messageTime.DayOfWeek);
 
-        // Если это ответ на сообщение, добавляем цитату
-        if (replyToMessage != null)
-        {
-            var replyText = GetMessageText(replyToMessage);
-            if (!string.IsNullOrEmpty(replyText))
-            {
-                var quotedReply = string.Join("\n", replyText.Split('\n').Select(line => $"> {line}"));
-                sb.AppendLine(quotedReply);
-                sb.AppendLine();
-            }
-        }
+		var sb = new StringBuilder();
 
-        // Основной контент в зависимости от типа сообщения
-        switch (message.Type)
-        {
-            case MessageType.Text:
-                sb.AppendLine(message.Text ?? "");
-                break;
+		// Заголовок сообщения
+		sb.AppendLine($"### [[{messageTime:yyyy-MM-dd} {dayOfWeek}]] {messageTime:HH:mm:ss}");
+		sb.AppendLine();
 
-            case MessageType.Photo:
-                if (!string.IsNullOrEmpty(mediaFileName))
-                {
-                    sb.AppendLine($"![](./media/{mediaFileName})");
-                }
-                if (!string.IsNullOrEmpty(message.Caption))
-                {
-                    sb.AppendLine();
-                    sb.AppendLine(message.Caption);
-                }
-                break;
+		// Если это ответ на сообщение, добавляем цитату
+		if (replyToMessage != null)
+		{
+			var replyText = GetMessageText(replyToMessage);
+			if (!string.IsNullOrEmpty(replyText))
+			{
+				var quotedReply = string.Join("\n", replyText.Split('\n').Select(line => $"> {line}"));
+				sb.AppendLine(quotedReply);
+				sb.AppendLine();
+			}
+		}
 
-            case MessageType.Video:
-            case MessageType.Document:
-            case MessageType.Audio:
-                if (!string.IsNullOrEmpty(mediaFileName))
-                {
-                    sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
-                }
-                if (!string.IsNullOrEmpty(message.Caption))
-                {
-                    sb.AppendLine();
-                    sb.AppendLine(message.Caption);
-                }
-                break;
+		// Основной контент в зависимости от типа сообщения
+		switch (message.Type)
+		{
+			case MessageType.Text:
+				sb.AppendLine(message.Text ?? "");
+				break;
 
-            case MessageType.Voice:
-                if (!string.IsNullOrEmpty(mediaFileName))
-                {
-                    sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
-                    sb.AppendLine();
-                }
-                if (!string.IsNullOrEmpty(transcription))
-                {
-                    var quotedTranscription = string.Join("\n", transcription.Split('\n').Select(line => $"> {line}"));
-                    sb.AppendLine(quotedTranscription);
-                }
-                break;
+			case MessageType.Photo:
+				if (!string.IsNullOrEmpty(mediaFileName))
+				{
+					sb.AppendLine($"![](./media/{mediaFileName})");
+				}
+				if (!string.IsNullOrEmpty(message.Caption))
+				{
+					sb.AppendLine();
+					sb.AppendLine(message.Caption);
+				}
+				break;
 
-            case MessageType.Sticker:
-                sb.AppendLine("[Стикер]");
-                if (!string.IsNullOrEmpty(message.Sticker?.Emoji))
-                {
-                    sb.AppendLine($"Эмодзи: {message.Sticker.Emoji}");
-                }
-                break;
+			case MessageType.Video:
+			case MessageType.Document:
+			case MessageType.Audio:
+				if (!string.IsNullOrEmpty(mediaFileName))
+				{
+					sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
+				}
+				if (!string.IsNullOrEmpty(message.Caption))
+				{
+					sb.AppendLine();
+					sb.AppendLine(message.Caption);
+				}
+				break;
 
-            case MessageType.Animation:
-                sb.AppendLine("[GIF-анимация]");
-                if (!string.IsNullOrEmpty(message.Caption))
-                {
-                    sb.AppendLine();
-                    sb.AppendLine(message.Caption);
-                }
-                break;
+			case MessageType.Voice:
+				if (!string.IsNullOrEmpty(mediaFileName))
+				{
+					sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
+					sb.AppendLine();
+				}
+				if (!string.IsNullOrEmpty(transcription))
+				{
+					var quotedTranscription = string.Join("\n", transcription.Split('\n').Select(line => $"> {line}"));
+					sb.AppendLine(quotedTranscription);
+				}
+				break;
 
-            case MessageType.Location:
-                if (message.Location != null)
-                {
-                    sb.AppendLine($"[Геолокация] Широта: {message.Location.Latitude}, Долгота: {message.Location.Longitude}");
-                }
-                break;
+			case MessageType.Sticker:
+				sb.AppendLine("[Стикер]");
+				if (!string.IsNullOrEmpty(message.Sticker?.Emoji))
+				{
+					sb.AppendLine($"Эмодзи: {message.Sticker.Emoji}");
+				}
+				break;
 
-            case MessageType.Poll:
-                sb.AppendLine("[Опрос]");
-                if (message.Poll != null)
-                {
-                    sb.AppendLine($"Вопрос: {message.Poll.Question}");
-                }
-                break;
+			case MessageType.Animation:
+				sb.AppendLine("[GIF-анимация]");
+				if (!string.IsNullOrEmpty(message.Caption))
+				{
+					sb.AppendLine();
+					sb.AppendLine(message.Caption);
+				}
+				break;
 
-            case MessageType.Contact:
-                sb.AppendLine("[Контакт]");
-                if (message.Contact != null)
-                {
-                    sb.AppendLine($"Имя: {message.Contact.FirstName} {message.Contact.LastName}");
-                    sb.AppendLine($"Телефон: {message.Contact.PhoneNumber}");
-                }
-                break;
+			case MessageType.Location:
+				if (message.Location != null)
+				{
+					sb.AppendLine($"[Геолокация] Широта: {message.Location.Latitude}, Долгота: {message.Location.Longitude}");
+				}
+				break;
 
-            default:
-                sb.AppendLine($"[Неподдерживаемый тип сообщения: {message.Type}]");
-                break;
-        }
+			case MessageType.Poll:
+				sb.AppendLine("[Опрос]");
+				if (message.Poll != null)
+				{
+					sb.AppendLine($"Вопрос: {message.Poll.Question}");
+				}
+				break;
 
-        sb.AppendLine();
-        sb.AppendLine("---");
-        sb.AppendLine();
+			case MessageType.Contact:
+				sb.AppendLine("[Контакт]");
+				if (message.Contact != null)
+				{
+					sb.AppendLine($"Имя: {message.Contact.FirstName} {message.Contact.LastName}");
+					sb.AppendLine($"Телефон: {message.Contact.PhoneNumber}");
+				}
+				break;
 
-        return sb.ToString();
-    }
+			default:
+				sb.AppendLine($"[Неподдерживаемый тип сообщения: {message.Type}]");
+				break;
+		}
 
-    public async Task AppendToNotesFileAsync(string filePath, string content)
-    {
-        try
-        {
-            // Создать директорию, если она не существует
-            var directory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
+		sb.AppendLine();
+		sb.AppendLine("---");
+		sb.AppendLine();
 
-            await File.AppendAllTextAsync(filePath, content, Encoding.UTF8);
-            _logger.LogInformation("Контент добавлен в файл заметок: {FilePath}", filePath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при добавлении контента в файл заметок {FilePath}", filePath);
-            throw;
-        }
-    }
+		return sb.ToString();
+	}
 
-    private static string GetMessageText(Message message)
-    {
-        return message.Type switch
-        {
-            MessageType.Text => message.Text ?? "",
-            MessageType.Photo => message.Caption ?? "[Фото]",
-            MessageType.Video => message.Caption ?? "[Видео]",
-            MessageType.Document => message.Caption ?? "[Документ]",
-            MessageType.Audio => message.Caption ?? "[Аудио]",
-            MessageType.Voice => "[Голосовое сообщение]",
-            MessageType.Sticker => $"[Стикер {message.Sticker?.Emoji}]",
-            MessageType.Animation => message.Caption ?? "[GIF]",
-            MessageType.Location => "[Геолокация]",
-            MessageType.Poll => $"[Опрос: {message.Poll?.Question}]",
-            MessageType.Contact => $"[Контакт: {message.Contact?.FirstName} {message.Contact?.LastName}]",
-            _ => $"[{message.Type}]"
-        };
-    }
+	public async Task AppendToNotesFileAsync(string filePath, string content)
+	{
+		try
+		{
+			// Создать директорию, если она не существует
+			var directory = Path.GetDirectoryName(filePath);
+			if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+			{
+				Directory.CreateDirectory(directory);
+			}
+
+			await File.AppendAllTextAsync(filePath, content, Encoding.UTF8);
+			_logger.LogInformation("Контент добавлен в файл заметок: {FilePath}", filePath);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Ошибка при добавлении контента в файл заметок {FilePath}", filePath);
+			throw;
+		}
+	}
+
+	private static string GetMessageText(Message message)
+	{
+		return message.Type switch
+		{
+			MessageType.Text => message.Text ?? "",
+			MessageType.Photo => message.Caption ?? "[Фото]",
+			MessageType.Video => message.Caption ?? "[Видео]",
+			MessageType.Document => message.Caption ?? "[Документ]",
+			MessageType.Audio => message.Caption ?? "[Аудио]",
+			MessageType.Voice => "[Голосовое сообщение]",
+			MessageType.Sticker => $"[Стикер {message.Sticker?.Emoji}]",
+			MessageType.Animation => message.Caption ?? "[GIF]",
+			MessageType.Location => "[Геолокация]",
+			MessageType.Poll => $"[Опрос: {message.Poll?.Question}]",
+			MessageType.Contact => $"[Контакт: {message.Contact?.FirstName} {message.Contact?.LastName}]",
+			_ => $"[{message.Type}]"
+		};
+	}
 }

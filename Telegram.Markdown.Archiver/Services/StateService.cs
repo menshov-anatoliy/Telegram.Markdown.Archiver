@@ -11,78 +11,72 @@ namespace Telegram.Markdown.Archiver.Services;
 /// </summary>
 public interface IStateService
 {
-    /// <summary>
-    /// Получить текущее состояние приложения
-    /// </summary>
-    Task<ApplicationState> GetStateAsync();
+	/// <summary>
+	/// Получить текущее состояние приложения
+	/// </summary>
+	Task<ApplicationState> GetStateAsync();
 
-    /// <summary>
-    /// Сохранить состояние приложения
-    /// </summary>
-    Task SaveStateAsync(ApplicationState state);
+	/// <summary>
+	/// Сохранить состояние приложения
+	/// </summary>
+	Task SaveStateAsync(ApplicationState state);
 }
 
 /// <summary>
 /// Сервис для работы с состоянием приложения
 /// </summary>
-public class StateService : IStateService
+public class StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<StateService> logger)
+	: IStateService
 {
-    private readonly PathsConfiguration _pathsConfiguration;
-    private readonly ILogger<StateService> _logger;
+	private readonly PathsConfiguration _pathsConfiguration = pathsConfiguration.Value;
 
-    public StateService(IOptions<PathsConfiguration> pathsConfiguration, ILogger<StateService> logger)
-    {
-        _pathsConfiguration = pathsConfiguration.Value;
-        _logger = logger;
-    }
+	public async Task<ApplicationState> GetStateAsync()
+	{
+		try
+		{
+			if (!File.Exists(_pathsConfiguration.StateFile))
+			{
+				logger.LogInformation("Файл состояния не найден. Создается новое состояние.");
+				return new ApplicationState();
+			}
 
-    public async Task<ApplicationState> GetStateAsync()
-    {
-        try
-        {
-            if (!File.Exists(_pathsConfiguration.StateFile))
-            {
-                _logger.LogInformation("Файл состояния не найден. Создается новое состояние.");
-                return new ApplicationState();
-            }
+			var json = await File.ReadAllTextAsync(_pathsConfiguration.StateFile);
+			var state = JsonSerializer.Deserialize<ApplicationState>(json);
 
-            var json = await File.ReadAllTextAsync(_pathsConfiguration.StateFile);
-            var state = JsonSerializer.Deserialize<ApplicationState>(json);
-            
-            _logger.LogInformation("Состояние загружено. Последний обработанный update_id: {UpdateId}", 
-                state?.LastProcessedUpdateId ?? 0);
-            
-            return state ?? new ApplicationState();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при загрузке состояния из файла {StateFile}", _pathsConfiguration.StateFile);
-            return new ApplicationState();
-        }
-    }
+			logger.LogInformation("Состояние загружено. Последний обработанный update_id: {UpdateId}",
+				state?.LastProcessedUpdateId ?? 0);
 
-    public async Task SaveStateAsync(ApplicationState state)
-    {
-        try
-        {
-            state.LastUpdated = DateTime.UtcNow;
-            
-            // Создать директорию, если она не существует
-            var directory = Path.GetDirectoryName(_pathsConfiguration.StateFile);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
+			return state ?? new ApplicationState();
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Ошибка при загрузке состояния из файла {StateFile}", _pathsConfiguration.StateFile);
+			return new ApplicationState();
+		}
+	}
 
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_pathsConfiguration.StateFile, json);
-            
-            _logger.LogInformation("Состояние сохранено. Update_id: {UpdateId}", state.LastProcessedUpdateId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Ошибка при сохранении состояния в файл {StateFile}", _pathsConfiguration.StateFile);
-            throw;
-        }
-    }
+	public async Task SaveStateAsync(ApplicationState state)
+	{
+		try
+		{
+			state.LastUpdated = DateTime.UtcNow;
+
+			// Создать директорию, если она не существует
+			var directory = Path.GetDirectoryName(_pathsConfiguration.StateFile);
+			if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+			{
+				Directory.CreateDirectory(directory);
+			}
+
+			var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+			await File.WriteAllTextAsync(_pathsConfiguration.StateFile, json);
+
+			logger.LogInformation("Состояние сохранено. Update_id: {UpdateId}", state.LastProcessedUpdateId);
+		}
+		catch (Exception ex)
+		{
+			logger.LogError(ex, "Ошибка при сохранении состояния в файл {StateFile}", _pathsConfiguration.StateFile);
+			throw;
+		}
+	}
 }
