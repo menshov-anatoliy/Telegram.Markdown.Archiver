@@ -28,11 +28,13 @@ public interface IMarkdownService
 public class MarkdownService : IMarkdownService
 {
 	private readonly ILogger<MarkdownService> _logger;
+	private readonly IErrorLoggingService _errorLoggingService;
 	private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-	public MarkdownService(ILogger<MarkdownService> logger)
+	public MarkdownService(ILogger<MarkdownService> logger, IErrorLoggingService errorLoggingService)
 	{
 		_logger = logger;
+		_errorLoggingService = errorLoggingService;
 	}
 
 	public string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null)
@@ -174,6 +176,7 @@ public class MarkdownService : IMarkdownService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Ошибка при добавлении контента в файл заметок {FilePath}", filePath);
+			await _errorLoggingService.LogErrorAsync(ex, $"Ошибка при записи в файл заметок {filePath}", "MarkdownService.AppendToNotesFileAsync");
 			throw;
 		}
 	}

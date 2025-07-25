@@ -25,7 +25,8 @@ public interface IWhisperService
 public class WhisperService(
 	IOptions<WhisperConfiguration> whisperConfiguration,
 	ILogger<WhisperService> logger,
-	IHttpClientFactory httpClientFactory)
+	IHttpClientFactory httpClientFactory,
+	IErrorLoggingService errorLoggingService)
 	: IWhisperService, IDisposable
 {
 	private readonly WhisperConfiguration _whisperConfiguration = whisperConfiguration.Value;
@@ -73,6 +74,7 @@ public class WhisperService(
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при транскрипции файла {AudioFilePath}", audioFilePath);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при транскрипции аудиофайла {audioFilePath}", "WhisperService.TranscribeAsync");
 			return "[Ошибка транскрипции]";
 		}
 		finally
@@ -125,6 +127,7 @@ public class WhisperService(
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Исключение при вызове FFmpeg для конвертации файла {InputPath}", inputPath);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка конвертации аудиофайла через FFmpeg: {inputPath}", "WhisperService.ConvertToWavAsync");
 			if (File.Exists(outputPath))
 			{
 				File.Delete(outputPath);
@@ -193,6 +196,7 @@ public class WhisperService(
 		catch (Exception ex)
 		{
 			logger.LogError(ex, "Ошибка при инициализации Whisper с моделью {ModelPath}", _whisperConfiguration.ModelPath);
+			await errorLoggingService.LogErrorAsync(ex, $"Ошибка при инициализации модели Whisper: {_whisperConfiguration.ModelPath}", "WhisperService.EnsureProcessorInitializedAsync");
 		}
 	}
 
