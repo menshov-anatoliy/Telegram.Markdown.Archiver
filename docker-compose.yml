@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  telegram-archiver:
+    build: 
+      context: .
+      dockerfile: Telegram.Markdown.Archiver/Dockerfile
+    environment:
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-6477100145:AAHleM4zu6YfFADIiIt_lwDBgNP6IC6Z-KU}
+      - Telegram__UserId=${TELEGRAM_USER_ID:-123456789}
+      - Paths__NotesRoot=/data/notes
+      - Paths__MediaDirectoryName=media
+      - Paths__StateFile=/data/state.json
+      - Whisper__ModelPath=/models/ggml-base.bin
+    volumes:
+      - ./data/notes:/data/notes
+      - ./data/state.json:/data/state.json
+      - ./models:/models
+    restart: unless-stopped
+    container_name: telegram-markdown-archiver
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  notes_data:
+  models_data:
