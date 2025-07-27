@@ -41,7 +41,7 @@ NOTES_HOST_PATH=./my_telegram_notes
 mkdir -p my_telegram_notes models
 
 # Загрузите модель Whisper для транскрипции (опционально)
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -O models/ggml-base.bin
+wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin -O models/ggml-medium.bin
 ```
 
 ### 4. Запуск приложения
@@ -119,7 +119,7 @@ Telegram.Markdown.Archiver/
 │       ├── photo_001.jpg
 │       └── voice_001.ogg
 └── models/                 # Модели Whisper
-    └── ggml-base.bin
+    └── ggml-medium.bin
 ```
 
 ## Безопасность

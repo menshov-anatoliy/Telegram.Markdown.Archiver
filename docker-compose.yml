@@ -20,7 +20,9 @@ services:
       # Путь к файлу состояния для отслеживания обработанных сообщений
       - Paths__StateFile=/data/state.json
       # Путь к модели Whisper для транскрипции голосовых сообщений
-      - Whisper__ModelPath=/models/ggml-base.bin
+      - Whisper__ModelPath=/models/ggml-medium.bin
+      # Тип модели Whisper (Medium обеспечивает лучший баланс качества и скорости)
+      - Whisper__ModelType=Medium
     
     # Монтирование томов для сохранения данных
     volumes:

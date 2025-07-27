@@ -89,7 +89,7 @@ mkdir -p data/notes models
 
 # Скачайте модель Whisper для транскрипции голосовых сообщений (опционально)
 # Если модель не загружена, голосовые сообщения будут сохраняться без транскрипции
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -O models/ggml-base.bin
+wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin -O models/ggml-medium.bin
 
 # Запустите сервис в фоновом режиме
 docker-compose up -d
@@ -186,7 +186,8 @@ docker volume rm telegram-markdown-archiver_models_data
     "StateFile": "/data/state.json"
   },
   "Whisper": {
-    "ModelPath": "/models/ggml-base.bin"
+    "ModelPath": "/models/ggml-medium.bin",
+    "ModelType": "Medium"
   }
 }
 ```
