@@ -61,22 +61,57 @@ cd Telegram.Markdown.Archiver
 
 ### 2. Настройка конфигурации
 
-Скопируйте `.env.example` в `.env` и настройте:
+Скопируйте `.env.example` в `.env` и настройте переменные окружения:
+
+```bash
+cp .env.example .env
+```
+
+Отредактируйте файл `.env`:
 ```env
+# Обязательные параметры
 TELEGRAM_BOT_TOKEN=ваш_токен_бота
 TELEGRAM_USER_ID=ваш_id_пользователя
+
+# Опциональные параметры
+NOTES_HOST_PATH=./data/notes  # Путь к директории для заметок на хост-машине
 ```
+
+**Важно:** Никогда не коммитьте файл `.env` в систему контроля версий!
 
 ### 3. Запуск с Docker Compose
 
 ```bash
-# Создайте директории для данных
+# Убедитесь, что файл .env настроен (см. шаг 2)
+
+# Создайте директории для данных (если используете локальные пути)
 mkdir -p data/notes models
 
-# Скачайте модель Whisper (опционально)
-# wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -O models/ggml-base.bin
+# Скачайте модель Whisper для транскрипции голосовых сообщений (опционально)
+# Если модель не загружена, голосовые сообщения будут сохраняться без транскрипции
+wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin -O models/ggml-medium.bin
 
-# Запустите сервис
+# Запустите сервис в фоновом режиме
+docker-compose up -d
+
+# Проверьте состояние сервиса
+docker-compose ps
+
+# Просмотр логов (опционально)
+docker-compose logs -f telegram-archiver
+```
+
+**Управление сервисом:**
+```bash
+# Остановка сервиса
+docker-compose down
+
+# Перезапуск сервиса
+docker-compose restart
+
+# Обновление и пересборка
+docker-compose down
+docker-compose build --no-cache
 docker-compose up -d
 ```
 
@@ -98,6 +133,44 @@ ASPNETCORE_ENVIRONMENT=Production dotnet run --project Telegram.Markdown.Archive
 dotnet test
 ```
 
+## Управление данными в Docker
+
+### Именованные тома
+Приложение использует именованные Docker тома для сохранения критически важных данных:
+
+- **`state_data`** - хранит файл состояния (`state.json`) и другие служебные данные
+- **`models_data`** - хранит модели Whisper для транскрипции голосовых сообщений
+
+Эти тома автоматически создаются при первом запуске и сохраняются между перезапусками контейнеров.
+
+### Директория заметок
+Директория с заметками монтируется с хост-машины через переменную `NOTES_HOST_PATH`:
+- По умолчанию: `./data/notes` (относительно docker-compose.yml)
+- Можно изменить в файле `.env`: `NOTES_HOST_PATH=/path/to/your/notes`
+
+### Резервное копирование данных
+```bash
+# Резервная копия именованных томов
+docker run --rm -v telegram-markdown-archiver_state_data:/data -v $(pwd):/backup alpine tar czf /backup/state_backup.tar.gz -C /data .
+docker run --rm -v telegram-markdown-archiver_models_data:/models -v $(pwd):/backup alpine tar czf /backup/models_backup.tar.gz -C /models .
+
+# Восстановление из резервной копии
+docker run --rm -v telegram-markdown-archiver_state_data:/data -v $(pwd):/backup alpine tar xzf /backup/state_backup.tar.gz -C /data
+docker run --rm -v telegram-markdown-archiver_models_data:/models -v $(pwd):/backup alpine tar xzf /backup/models_backup.tar.gz -C /models
+```
+
+### Очистка данных
+```bash
+# Остановка сервиса
+docker-compose down
+
+# Удаление именованных томов (ВНИМАНИЕ: данные будут потеряны!)
+docker volume rm telegram-markdown-archiver_state_data
+docker volume rm telegram-markdown-archiver_models_data
+
+# Директория заметок останется на хост-машине
+```
+
 ## Конфигурация
 
 ### appsettings.json
@@ -113,15 +186,25 @@ dotnet test
     "StateFile": "/data/state.json"
   },
   "Whisper": {
-    "ModelPath": "/models/ggml-base.bin"
+    "ModelPath": "/models/ggml-medium.bin",
+    "ModelType": "Medium"
   }
 }
 ```
 
 ### Переменные окружения
-- `TELEGRAM_BOT_TOKEN` - токен Telegram бота
-- `TELEGRAM_USER_ID` - ID пользователя Telegram
-- `Paths__NotesRoot` - путь к корневой директории заметок
+
+**Обязательные:**
+- `TELEGRAM_BOT_TOKEN` - токен Telegram бота (получите у @BotFather)
+- `TELEGRAM_USER_ID` - ID пользователя Telegram (получите у @userinfobot)
+
+**Опциональные для Docker:**
+- `NOTES_HOST_PATH` - путь к директории заметок на хост-машине (по умолчанию: `./data/notes`)
+
+**Внутренние переменные (настраиваются автоматически):**
+- `Paths__NotesRoot` - путь к корневой директории заметок внутри контейнера
+- `Paths__MediaDirectoryName` - имя поддиректории для медиафайлов  
+- `Paths__StateFile` - путь к файлу состояния
 - `Whisper__ModelPath` - путь к модели Whisper
 
 ## Получение токена бота и ID пользователя
@@ -158,7 +241,15 @@ dotnet test
 
 ### Проверка логов
 ```bash
+# Просмотр логов в реальном времени
 docker-compose logs -f telegram-archiver
+
+# Просмотр последних логов
+docker-compose logs --tail=50 telegram-archiver
+
+# Проверка состояния здоровья контейнера
+docker-compose ps
+docker inspect telegram-markdown-archiver --format='{{.State.Health.Status}}'
 ```
 
 ### Проверка состояния
