@@ -46,7 +46,7 @@ public class FileSystemService(IOptions<PathsConfiguration> pathsConfiguration, 
 
 	public string GetNotesFilePath(DateTime date)
 	{
-		var fileName = $"{date:yyyy-MM-dd}_Notes.md";
+		var fileName = $"Telegram-{date:yyyy-MM-dd}_Notes.md";
 		return Path.Combine(_pathsConfiguration.NotesRoot, fileName);
 	}
 

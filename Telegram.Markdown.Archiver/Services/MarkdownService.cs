@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Markdown.Archiver.Models.Configuration;
 
 namespace Telegram.Markdown.Archiver.Services;
 
@@ -29,12 +31,14 @@ public class MarkdownService : IMarkdownService
 {
 	private readonly ILogger<MarkdownService> _logger;
 	private readonly IErrorLoggingService _errorLoggingService;
+	private readonly PathsConfiguration _pathsConfiguration;
 	private static readonly CultureInfo RussianCulture = new("ru-RU");
 
-	public MarkdownService(ILogger<MarkdownService> logger, IErrorLoggingService errorLoggingService)
+	public MarkdownService(ILogger<MarkdownService> logger, IErrorLoggingService errorLoggingService, IOptions<PathsConfiguration> pathsConfiguration)
 	{
 		_logger = logger;
 		_errorLoggingService = errorLoggingService;
+		_pathsConfiguration = pathsConfiguration.Value;
 	}
 
 	public string FormatMessage(Message message, string? mediaFileName = null, string? transcription = null, Message? replyToMessage = null)
@@ -70,7 +74,7 @@ public class MarkdownService : IMarkdownService
 			case MessageType.Photo:
 				if (!string.IsNullOrEmpty(mediaFileName))
 				{
-					sb.AppendLine($"![](./media/{mediaFileName})");
+					sb.AppendLine($"![](./{_pathsConfiguration.MediaDirectoryName}/{mediaFileName})");
 				}
 				if (!string.IsNullOrEmpty(message.Caption))
 				{
@@ -84,7 +88,7 @@ public class MarkdownService : IMarkdownService
 			case MessageType.Audio:
 				if (!string.IsNullOrEmpty(mediaFileName))
 				{
-					sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
+					sb.AppendLine($"[{mediaFileName}](./{_pathsConfiguration.MediaDirectoryName}/{mediaFileName})");
 				}
 				if (!string.IsNullOrEmpty(message.Caption))
 				{
@@ -96,7 +100,7 @@ public class MarkdownService : IMarkdownService
 			case MessageType.Voice:
 				if (!string.IsNullOrEmpty(mediaFileName))
 				{
-					sb.AppendLine($"[{mediaFileName}](./media/{mediaFileName})");
+					sb.AppendLine($"[{mediaFileName}](./{_pathsConfiguration.MediaDirectoryName}/{mediaFileName})");
 					sb.AppendLine();
 				}
 				if (!string.IsNullOrEmpty(transcription))
