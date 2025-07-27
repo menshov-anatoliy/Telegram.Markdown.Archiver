@@ -1,29 +1,69 @@
-version: '3.8'
+# Конфигурация Docker Compose для Telegram Markdown Archiver
 
 services:
   telegram-archiver:
+    # Сборка образа из локального Dockerfile
     build: 
       context: .
       dockerfile: Telegram.Markdown.Archiver/Dockerfile
+    
+    # Переменные окружения для конфигурации приложения
     environment:
-      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-6477100145:AAHleM4zu6YfFADIiIt_lwDBgNP6IC6Z-KU}
-      - Telegram__UserId=${TELEGRAM_USER_ID:-123456789}
+      # Токен Telegram бота (обязательный) - берется из .env файла
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN}
+      # ID пользователя Telegram (обязательный) - берется из .env файла  
+      - Telegram__UserId=${TELEGRAM_USER_ID}
+      # Корневая директория для сохранения заметок внутри контейнера
       - Paths__NotesRoot=/data/notes
+      # Имя поддиректории для медиафайлов
       - Paths__MediaDirectoryName=media
+      # Путь к файлу состояния для отслеживания обработанных сообщений
       - Paths__StateFile=/data/state.json
+      # Путь к модели Whisper для транскрипции голосовых сообщений
       - Whisper__ModelPath=/models/ggml-base.bin
+    
+    # Монтирование томов для сохранения данных
     volumes:
-      - ./data/notes:/data/notes
-      - ./data/state.json:/data/state.json
-      - ./models:/models
+      # Маппинг директории заметок с хост-машины (конфигурируется через .env)
+      - ${NOTES_HOST_PATH:-./data/notes}:/data/notes
+      # Именованный том для файла состояния (сохраняется между перезапусками)
+      - state_data:/data
+      # Именованный том для моделей Whisper (переиспользуется между контейнерами)
+      - models_data:/models
+    
+    # Политика перезапуска: перезапускать всегда, кроме случаев явной остановки
     restart: unless-stopped
+    
+    # Человекочитаемое имя контейнера
     container_name: telegram-markdown-archiver
+    
+    # Проверка здоровья контейнера (опциональная)
+    healthcheck:
+      # Проверяем, что приложение отвечает (можно настроить под конкретное приложение)
+      test: ["CMD", "dotnet", "--info"]
+      # Интервал между проверками
+      interval: 30s
+      # Время ожидания ответа
+      timeout: 10s
+      # Количество неудачных попыток до пометки как unhealthy
+      retries: 3
+      # Время до первой проверки после запуска
+      start_period: 40s
+    
+    # Конфигурация логирования
     logging:
       driver: "json-file"
       options:
+        # Максимальный размер одного лог-файла
         max-size: "10m"
+        # Максимальное количество лог-файлов для ротации
         max-file: "3"
 
+# Именованные тома для персистентного хранения данных
 volumes:
-  notes_data:
+  # Том для хранения файла состояния и других служебных данных
+  state_data:
+    driver: local
+  # Том для хранения моделей Whisper (загружаются один раз, используются многократно)
   models_data:
+    driver: local
